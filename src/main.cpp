@@ -1,18 +1,21 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
+#include "R200.h"
 
-// put function declarations here:
-int myFunction(int, int);
+#define RX_PIN 16
+#define TX_PIN 17
 
-void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+R200 reader(Serial2, RX_PIN, TX_PIN);
+
+void setup()
+{
+  Serial.begin(115200);
+  reader.begin();
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+void loop()
+{
+  // Scan for RFID tags
+  String tagsJson = reader.scan();
+  Serial.println("Scanned Tags: " + tagsJson);
 }
