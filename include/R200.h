@@ -29,9 +29,9 @@ private:
 public:
     R200(HardwareSerial &serial, int rxPin, int txPin, int baud = 115200);
     bool begin();
-
     void setTxPower(uint8_t dbm);
     String scan();
+    String getJsonDifference(String jsonOld, String jsonNew);
 };
 
 #endif

@@ -227,3 +227,67 @@ Frame R200::_readResponse()
     // No valid tag found
     return Frame{};
 }
+
+// Compare two JSON arrays and return the difference in JSON format
+// This difference would be the items to be added into the cart
+String R200::getJsonDifference(String jsonOld, String jsonNew)
+{
+    // Parse both old and new JSON arrays for comparison
+    DynamicJsonDocument doc1(2048);
+    DynamicJsonDocument doc2(2048);
+    deserializeJson(doc1, jsonOld);
+    deserializeJson(doc2, jsonNew);
+
+    // Convert JSON arrays to vectors for easier comparison
+    std::vector<String> listOld;
+    std::vector<String> listNew;
+
+    // Populate JSON arrays into vectors
+    for (JsonVariant v : doc1.as<JsonArray>())
+        listOld.push_back(v.as<String>());
+    for (JsonVariant v : doc2.as<JsonArray>())
+        listNew.push_back(v.as<String>());
+
+    // Compare both vectors to find missing tags
+    DynamicJsonDocument resultDoc(2048);
+    JsonArray missingArray = resultDoc.createNestedArray("Cart");
+    // Find new tags array (not used)
+    // JsonArray newArray = resultDoc.createNestedArray("new");
+
+    // Find missing tags
+    for (const String &oldTag : listOld)
+    {
+        bool found = false;
+        for (const String &newTag : listNew)
+        {
+            if (oldTag == newTag)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            missingArray.add(oldTag);
+    }
+
+    // // Find new tags
+    // for (const String &newTag : listNew)
+    // {
+    //     bool found = false;
+    //     for (const String &oldTag : listOld)
+    //     {
+    //         if (newTag == oldTag)
+    //         {
+    //             found = true;
+    //             break;
+    //         }
+    //     }
+    //     if (!found)
+    //         newArray.add(newTag);
+    // }
+
+    // Serialize result JSON
+    String output;
+    serializeJson(resultDoc, output);
+    return output;
+}
