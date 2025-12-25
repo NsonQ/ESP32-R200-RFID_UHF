@@ -18,4 +18,5 @@ void loop()
   // Scan for RFID tags
   String tagsJson = reader.scan();
   Serial.println("Scanned Tags: " + tagsJson);
+  delay(5000);
 }

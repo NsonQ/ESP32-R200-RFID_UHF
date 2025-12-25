@@ -57,13 +57,25 @@ String R200::scan()
     //
     while (millis() - start < 500)
     {
-        // Try to read a frame
-        String tag = _readResponse();
+        // Read a notification frame
+        Frame response = _readResponse();
 
-        // Receive valid tag
-        if (tag != "")
+        // Receive valid frame
+        if (response.cmd == 0x22 && response.payload.size() > 5)
         {
-            // Check for duplicates
+            String tag = "";
+            // Extract EPC from payload
+            // Start at index 3 (Skip RSSI, PC bytes)
+            // End at size - 2 (Skip CRC bytes)
+            for (size_t i = 3; i < response.payload.size() - 2; i++)
+            {
+                if (response.payload[i] < 0x10)
+                    tag += "0";
+                tag += String(response.payload[i], HEX);
+            }
+            tag.toUpperCase();
+
+            // Ensure unique tags only
             bool exists = false;
             for (const String &t : foundTags)
             {
@@ -74,7 +86,7 @@ String R200::scan()
                 }
             }
 
-            // Add new tag
+            // Add to JSON array if new tag
             if (!exists)
             {
                 foundTags.push_back(tag);
@@ -139,7 +151,7 @@ void R200::_sendCommand(uint8_t cmd, const uint8_t *params, size_t len)
 
 // Read response frame from R200
 // Return EPC string if tag found, else return empty string
-String R200::_readResponse()
+Frame R200::_readResponse()
 {
 
     if (_serial->available())
@@ -148,7 +160,7 @@ String R200::_readResponse()
 
         // Ignore invalid bytes until a header byte is found
         if (b != 0xAA)
-            return "";
+            return Frame{};
 
         // Wait 50ms for Type, Cmd, PL_MSB, PL_LSB
         unsigned long timeout = millis();
@@ -156,7 +168,7 @@ String R200::_readResponse()
         {
             // Incomplete frame
             if (millis() - timeout > 50)
-                return "";
+                return Frame{};
         }
 
         // Read notification frame's Type, Cmd, PL_MSB, PL_LSB
@@ -172,7 +184,7 @@ String R200::_readResponse()
         {
             // Incomplete frame
             if (millis() - timeout > 100)
-                return "";
+                return Frame{};
         }
 
         // Read payload, checksum, end byte
@@ -184,36 +196,34 @@ String R200::_readResponse()
         uint8_t checksum = _serial->read();
         uint8_t end = _serial->read();
 
-        // Debugging Output
-        Serial.print("Notification Frame Type: ");
-        Serial.print(type, HEX);
-        Serial.print(" | Cmd: ");
-        Serial.print(cmd, HEX);
-        if (cmd == 0xFF && payloadLen > 0)
+        // Complete frame received
+        if (end == 0xDD)
         {
-            Serial.print(" | ERROR: ");
-            Serial.print(payload[0], HEX);
-        }
-        else
-        {
-            Serial.println("");
-        }
+            Frame f;
+            f.frameType = type;
+            f.cmd = cmd;
 
-        // Validate notification frame's type
-        if (type == 0x02 && payloadLen > 5)
-        {
-            String epcString = "";
-            // EPC is from byte 3 to (Length - 2)
-            for (int i = 3; i < payloadLen - 2; i++)
+            // Copy array to vector
+            for (int i = 0; i < payloadLen; i++)
             {
-                if (payload[i] < 0x10)
-                    epcString += "0";
-                epcString += String(payload[i], HEX);
+                f.payload.push_back(payload[i]);
             }
-            epcString.toUpperCase();
-            return epcString;
+
+            // Debugging info
+            // Serial.print("RX Cmd: "); Serial.println(cmd, HEX);
+            // Serial.print("RX Type: "); Serial.println(type, HEX);
+            // Serial.print("RX Payload Len: "); Serial.println(payloadLen);
+            // Serial.print("RX Payload: ");
+            // for (size_t i = 0; i < payloadLen; i++)
+            // {
+            //     Serial.print(payload[i], HEX); Serial.print(" ");
+            // }
+            // Serial.println();
+            // Serial.print("RX Checksum: "); Serial.println(checksum, HEX);
+
+            return f;
         }
     }
     // No valid tag found
-    return "";
+    return Frame{};
 }

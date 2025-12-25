@@ -7,7 +7,7 @@
 #include <ArduinoJson.h>
 
 // Structure to hold parsed frames internally
-struct ResponseFrame
+struct Frame
 {
     uint8_t frameType;
     uint8_t cmd;
@@ -24,7 +24,7 @@ private:
 
     uint8_t _calculateChecksum(const uint32_t data);
     void _sendCommand(uint8_t cmd, const uint8_t *params, size_t len);
-    String _readResponse();
+    Frame _readResponse();
 
 public:
     R200(HardwareSerial &serial, int rxPin, int txPin, int baud = 115200);
