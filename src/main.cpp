@@ -28,33 +28,32 @@ String currentInventory = "[]";
 
 void setup_wifi();
 void reconnect();
+void callback(char *topic, byte *payload, unsigned int length);
 
 void setup()
 {
   Serial.begin(115200);
   reader.begin();
   reader.setTxPower(15);
-  Serial.println("R200 Initialized");
   setup_wifi();
   pinMode(LOCK_PIN, OUTPUT);
   pinMode(LOCK_FEEDBACK_PIN, INPUT_PULLUP);
   lastLockState = digitalRead(LOCK_FEEDBACK_PIN);
-  Serial.println("WiFi Connected");
   client.setServer(mqtt_server, mqtt_port);
-  Serial.println("Press 1 for scan, Press 2 for scan and diff");
+  client.setCallback(callback);
 }
 
 void loop()
 {
-  int currentLockState = digitalRead(LOCK_FEEDBACK_PIN);
-
-  delay(100); // Small debounce delay
-
   if (!client.connected())
   {
     reconnect();
   }
   client.loop();
+
+  // Read the lock state
+  int currentLockState = digitalRead(LOCK_FEEDBACK_PIN);
+  delay(100);
 
   // Scan the initial inventory when the door is unlocked
   if (currentLockState == HIGH && lastLockState == LOW)
@@ -63,34 +62,21 @@ void loop()
     Serial.println("Initial Inventory: " + previousInventory);
     lastLockState = currentLockState;
   }
-  // Repeatedly scan when the door is opening
+  // Repeatedly scan and publish the cart when the door is opening
   else if (currentLockState == HIGH && lastLockState == HIGH)
   {
     currentInventory = reader.scan();
     Serial.println("Current Inventory: " + currentInventory);
-    delay(1000);
-  }
-  // Publish the updated inventory and cart when the door is closed
-  else if (currentLockState == LOW && lastLockState == HIGH)
-  {
     diff = reader.getJsonDifference(previousInventory, currentInventory);
     Serial.println("Cart: " + diff);
     client.publish(CART, diff.c_str());
+    delay(1000);
+  }
+  // Publish the updated inventory the door is closed
+  else if (currentLockState == LOW && lastLockState == HIGH)
+  {
     client.publish(INVENTORY, currentInventory.c_str());
     lastLockState = currentLockState;
-  }
-
-  if (Serial.available())
-  {
-    char cmd = Serial.read();
-
-    if (cmd == 'o')
-    {
-      Serial.println("Door Unlocked");
-      digitalWrite(LOCK_PIN, HIGH);
-      delay(300);
-      digitalWrite(LOCK_PIN, LOW);
-    }
   }
 }
 
@@ -118,13 +104,45 @@ void reconnect()
   {
     Serial.print("Attempting MQTT connection...");
     if (client.connect("ESP32Client"))
+    {
       Serial.println("connected");
+      client.subscribe(COMMAND);
+      Serial.println("Subscribed to command topic");
+    }
+
     else
     {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
       delay(5000);
+    }
+  }
+}
+
+// Callback function to handle incoming MQTT messages
+void callback(char *topic, byte *payload, unsigned int length)
+{
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  // Create a string from the payload for easy comparison
+  String message = "";
+  for (int i = 0; i < length; i++)
+  {
+    message += (char)payload[i];
+  }
+  Serial.println(message);
+
+  // Check if the message is the unlock command
+  if (String(topic) == COMMAND)
+  {
+    if (message == "UNLOCK")
+    {
+      Serial.println("MQTT Command: Door Unlocked");
+      digitalWrite(LOCK_PIN, HIGH);
+      delay(300);
+      digitalWrite(LOCK_PIN, LOW);
     }
   }
 }
