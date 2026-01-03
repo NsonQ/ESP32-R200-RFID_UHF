@@ -9,6 +9,8 @@
 #define TX_PIN 17
 #define LOCK_PIN 21
 #define LOCK_FEEDBACK_PIN 22
+#define GREEN_LED_PIN 18
+#define RED_LED_PIN 4
 
 // MQTT Topics
 const char *INVENTORY = "Fridge01/Inventory";
@@ -32,13 +34,23 @@ void callback(char *topic, byte *payload, unsigned int length);
 
 void setup()
 {
+  // Initialise Serial and R200 Module
   Serial.begin(115200);
   reader.begin();
   reader.setTxPower(15);
-  setup_wifi();
+
+  // Initialize GPIO pins
   pinMode(LOCK_PIN, OUTPUT);
   pinMode(LOCK_FEEDBACK_PIN, INPUT_PULLUP);
+  pinMode(GREEN_LED_PIN, OUTPUT);
+  pinMode(RED_LED_PIN, OUTPUT);
+  digitalWrite(RED_LED_PIN, HIGH);
   lastLockState = digitalRead(LOCK_FEEDBACK_PIN);
+
+  // Connect to WiFi
+  setup_wifi();
+
+  // Setup MQTT
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 }
@@ -58,6 +70,8 @@ void loop()
   // Scan the initial inventory when the door is unlocked
   if (currentLockState == HIGH && lastLockState == LOW)
   {
+    digitalWrite(GREEN_LED_PIN, HIGH);
+    digitalWrite(RED_LED_PIN, LOW);
     previousInventory = reader.scan();
     Serial.println("Initial Inventory: " + previousInventory);
     lastLockState = currentLockState;
@@ -75,6 +89,10 @@ void loop()
   // Publish the updated inventory the door is closed
   else if (currentLockState == LOW && lastLockState == HIGH)
   {
+    digitalWrite(GREEN_LED_PIN, LOW);
+    digitalWrite(RED_LED_PIN, HIGH);
+    Serial.println("Door Closed. Publishing updated inventory...");
+    Serial.println("Updated Inventory: " + currentInventory);
     client.publish(INVENTORY, currentInventory.c_str());
     lastLockState = currentLockState;
   }
