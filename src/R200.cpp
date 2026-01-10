@@ -334,3 +334,56 @@ String R200::getJsonDifference(String jsonOld, String jsonNew)
     serializeJson(resultDoc, output);
     return output;
 }
+
+// Merge new tags from jsonNew into jsonOld
+// Returns a JSON array containing all tags from jsonOld plus any new tags found in jsonNew
+String R200::mergeNewTags(String jsonOld, String jsonNew)
+{
+    // Parse both old and new JSON arrays
+    DynamicJsonDocument doc1(2048);
+    DynamicJsonDocument doc2(2048);
+    deserializeJson(doc1, jsonOld);
+    deserializeJson(doc2, jsonNew);
+
+    // Convert JSON arrays to vectors for easier comparison
+    std::vector<String> listOld;
+    std::vector<String> listNew;
+
+    // Populate JSON arrays into vectors
+    for (JsonVariant v : doc1.as<JsonArray>())
+        listOld.push_back(v.as<String>());
+    for (JsonVariant v : doc2.as<JsonArray>())
+        listNew.push_back(v.as<String>());
+
+    // Create merged result with all tags from old inventory
+    DynamicJsonDocument mergedDoc(2048);
+    JsonArray mergedArray = mergedDoc.to<JsonArray>();
+
+    // Add all existing tags from old inventory
+    for (const String &tag : listOld)
+        mergedArray.add(tag);
+
+    // Find and add new tags (tags in new inventory that are NOT in old inventory)
+    for (const String &newTag : listNew)
+    {
+        bool exists = false;
+        for (const String &oldTag : listOld)
+        {
+            if (newTag == oldTag)
+            {
+                exists = true;
+                break;
+            }
+        }
+        // If tag doesn't exist in old inventory, add it to merged array
+        if (!exists)
+        {
+            mergedArray.add(newTag);
+        }
+    }
+
+    // Serialize merged JSON
+    String output;
+    serializeJson(mergedDoc, output);
+    return output;
+}

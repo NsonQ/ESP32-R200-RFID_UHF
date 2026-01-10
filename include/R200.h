@@ -33,6 +33,7 @@ public:
     bool setSensitivity(uint8_t mixerGain = 6, uint8_t ifGain = 7, uint16_t threshold = 0x0100);
     String scan();
     String getJsonDifference(String jsonOld, String jsonNew);
+    String mergeNewTags(String jsonOld, String jsonNew);
 };
 
 #endif

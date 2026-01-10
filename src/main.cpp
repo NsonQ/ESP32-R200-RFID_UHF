@@ -38,12 +38,15 @@ void setup()
   Serial.begin(115200);
   reader.begin();
   reader.setTxPower(26);
-  
+
   // Set maximum sensitivity
   // Mixer Gain: 6 (max), IF Gain: 7 (max), Threshold: 0x0600 (lower = more sensitive)
-  if (reader.setSensitivity(6, 7, 0x0600)) {
+  if (reader.setSensitivity(6, 7, 0x0600))
+  {
     Serial.println("Sensitivity modified.");
-  } else {
+  }
+  else
+  {
     Serial.println("Warning: Failed to modify sensitivity.");
   }
 
@@ -89,6 +92,16 @@ void loop()
   {
     currentInventory = reader.scan();
     Serial.println("Current Inventory: " + currentInventory);
+
+    // Update previousInventory with any newly discovered tags
+    // (tags that appear in currentInventory but were missed in initial scan)
+    String updatedPrevious = reader.mergeNewTags(previousInventory, currentInventory);
+    if (updatedPrevious != previousInventory)
+    {
+      Serial.println("New tags discovered, updating previous inventory.");
+      previousInventory = updatedPrevious;
+    }
+
     diff = reader.getJsonDifference(previousInventory, currentInventory);
     Serial.println("Cart: " + diff);
     client.publish(CART, diff.c_str());
@@ -99,8 +112,8 @@ void loop()
   {
     digitalWrite(GREEN_LED_PIN, LOW);
     digitalWrite(RED_LED_PIN, HIGH);
-    Serial.println("Door Closed. Publishing updated inventory...");
-    Serial.println("Updated Inventory: " + currentInventory);
+    Serial.println("Door Closed. Publishing latest inventory...");
+    Serial.println("Latest Inventory: " + currentInventory);
     client.publish(INVENTORY, currentInventory.c_str());
     lastLockState = currentLockState;
   }
