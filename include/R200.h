@@ -30,6 +30,7 @@ public:
     R200(HardwareSerial &serial, int rxPin, int txPin, int baud = 115200);
     bool begin();
     void setTxPower(uint8_t dbm);
+    bool setSensitivity(uint8_t mixerGain = 6, uint8_t ifGain = 7, uint16_t threshold = 0x0100);
     String scan();
     String getJsonDifference(String jsonOld, String jsonNew);
 };

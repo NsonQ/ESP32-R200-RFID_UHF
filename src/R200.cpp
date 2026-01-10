@@ -36,6 +36,49 @@ void R200::setTxPower(uint8_t dbm)
     delay(50);
 }
 
+// Adjust sensitivity level (Command 0xF0)
+// mixerGain: 0-6 (higher = more sensitive, 6 = maximum)
+// ifGain: 0-7 (higher = more sensitive, 7 = maximum)
+// threshold: 0x0000-0xFFFF (lower = more sensitive, typical range 0x0080-0x0200)
+bool R200::setSensitivity(uint8_t mixerGain, uint8_t ifGain, uint16_t threshold)
+{
+    // Validate inputs
+    if (mixerGain > 6)
+        mixerGain = 6;
+    if (ifGain > 7)
+        ifGain = 7;
+
+    // Construct payload: Mixer_G (1byte) | IF_G (1byte) | Thrd (2bytes, big-endian)
+    uint8_t params[4];
+    params[0] = mixerGain;
+    params[1] = ifGain;
+    params[2] = (threshold >> 8) & 0xFF; // MSB
+    params[3] = threshold & 0xFF;         // LSB
+
+    _sendCommand(0xF0, params, 4);
+    delay(100);
+
+    // Read response to verify
+    Frame response = _readResponse();
+    if (response.cmd == 0xF0 && response.payload.size() > 0)
+    {
+        if (response.payload[0] == 0x00)
+        {
+            Serial.print("Mixer Gain: ");
+            Serial.print(mixerGain);
+            Serial.print(" | Amplifier Gain: ");
+            Serial.print(ifGain);
+            Serial.print(" | Threshold: 0x");
+            if (threshold < 0x1000) Serial.print("0");
+            if (threshold < 0x100) Serial.print("0");
+            if (threshold < 0x10) Serial.print("0");
+            Serial.println(threshold, HEX);
+            return true;
+        }
+    }
+    return false;
+}
+
 // Send scan command and read the response frame
 // Return the tags' EPC in JSON array format
 String R200::scan()

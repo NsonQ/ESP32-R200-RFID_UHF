@@ -37,7 +37,15 @@ void setup()
   // Initialise Serial and R200 Module
   Serial.begin(115200);
   reader.begin();
-  reader.setTxPower(15);
+  reader.setTxPower(26);
+  
+  // Set maximum sensitivity
+  // Mixer Gain: 6 (max), IF Gain: 7 (max), Threshold: 0x0600 (lower = more sensitive)
+  if (reader.setSensitivity(6, 7, 0x0600)) {
+    Serial.println("Sensitivity modified.");
+  } else {
+    Serial.println("Warning: Failed to modify sensitivity.");
+  }
 
   // Initialize GPIO pins
   pinMode(LOCK_PIN, OUTPUT);
