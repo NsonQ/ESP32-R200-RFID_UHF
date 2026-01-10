@@ -11,6 +11,7 @@
 #define LOCK_FEEDBACK_PIN 22
 #define GREEN_LED_PIN 18
 #define RED_LED_PIN 4
+#define BLUE_LED_PIN 3
 
 // MQTT Topics
 const char *INVENTORY = "Fridge01/Inventory";
@@ -47,6 +48,7 @@ void setup()
   pinMode(LOCK_FEEDBACK_PIN, INPUT_PULLUP);
   pinMode(GREEN_LED_PIN, OUTPUT);
   pinMode(RED_LED_PIN, OUTPUT);
+  pinMode(BLUE_LED_PIN, OUTPUT);
   digitalWrite(RED_LED_PIN, HIGH);
   lastLockState = digitalRead(LOCK_FEEDBACK_PIN);
 
@@ -56,6 +58,9 @@ void setup()
   // Setup MQTT
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
+  reconnect();
+  Serial.println("Blue LED ON - System Active");
+  digitalWrite(BLUE_LED_PIN, HIGH);
 }
 
 void loop()
