@@ -17,12 +17,12 @@ bool R200::begin()
     return true;
 }
 
-// Adjust transmission power (15 to 30 dBm)
+// Adjust transmission power (15 to 26 dBm)
 // Command 0xB6
 void R200::setTxPower(uint8_t dbm)
 {
-    if (dbm > 30)
-        dbm = 30;
+    if (dbm > 26)
+        dbm = 26;
     else if (dbm < 15)
         dbm = 15;
     uint16_t powerVal = dbm * 100;
@@ -32,14 +32,39 @@ void R200::setTxPower(uint8_t dbm)
     params[0] = (powerVal >> 8) & 0xFF; // MSB
     params[1] = powerVal & 0xFF;        // LSB
 
+    // Flush any existing data in buffer before sending command
+    while (_serial->available())
+        _serial->read();
+
     _sendCommand(0xB6, params, 2);
-    delay(50);
+    delay(150); // Delay to ensure response is ready
+
+    // Read response to verify
+    Frame response = _readResponse();
+    // Check if we got a valid response frame (frameType 0x01 = response, cmd 0xB6)
+    if (response.frameType == 0x01 && response.cmd == 0xB6 && response.payload.size() > 0)
+    {
+        if (response.payload[0] == 0x00)
+        {
+            Serial.print("TX Power set successfully. Power: ");
+            Serial.print(dbm);
+            Serial.println(" dBm");
+        }
+        else
+        {
+            Serial.println("Warning: Failed to set TX Power.");
+        }
+    }
+    else
+    {
+        Serial.println("Warning: Failed to set TX Power.");
+    }
 }
 
 // Adjust sensitivity level (Command 0xF0)
 // mixerGain: 0-6 (higher = more sensitive, 6 = maximum)
 // ifGain: 0-7 (higher = more sensitive, 7 = maximum)
-bool R200::setSensitivity(uint8_t mixerGain, uint8_t ifGain, uint16_t threshold)
+void R200::setSensitivity(uint8_t mixerGain, uint8_t ifGain, uint16_t threshold)
 {
     // Validate inputs
     if (mixerGain > 6)
@@ -80,15 +105,16 @@ bool R200::setSensitivity(uint8_t mixerGain, uint8_t ifGain, uint16_t threshold)
             if (threshold < 0x10)
                 Serial.print("0");
             Serial.println(threshold, HEX);
-            return true;
         }
         else
         {
-            // Response received but indicates failure
-            return false;
+            Serial.println("Warning: Failed to set sensitivity.");
         }
     }
-    return false;
+    else
+    {
+        Serial.println("Warning: Failed to set sensitivity.");
+    }
 }
 
 // Send scan command and read the response frame

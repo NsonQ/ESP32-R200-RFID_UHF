@@ -37,17 +37,10 @@ void setup()
   // Initialise Serial and R200 Module
   Serial.begin(115200);
   reader.begin();
-  reader.setTxPower(26);
 
-  // Set sensitivity
-  if (reader.setSensitivity(6, 7, 0x00FF))
-  {
-    Serial.println("Sensitivity modified.");
-  }
-  else
-  {
-    Serial.println("Warning: Failed to modify sensitivity.");
-  }
+  // Set sensitivity and transmission power
+  reader.setTxPower(24);
+  reader.setSensitivity(3, 6, 0x0100);
 
   // Initialize GPIO pins
   pinMode(LOCK_PIN, OUTPUT);
