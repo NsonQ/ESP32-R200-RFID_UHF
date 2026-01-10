@@ -39,9 +39,8 @@ void setup()
   reader.begin();
   reader.setTxPower(26);
 
-  // Set maximum sensitivity
-  // Mixer Gain: 6 (max), IF Gain: 7 (max), Threshold: 0x0600 (lower = more sensitive)
-  if (reader.setSensitivity(6, 7, 0x0600))
+  // Set sensitivity
+  if (reader.setSensitivity(6, 7, 0x00FF))
   {
     Serial.println("Sensitivity modified.");
   }

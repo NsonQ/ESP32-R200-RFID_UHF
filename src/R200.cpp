@@ -39,7 +39,6 @@ void R200::setTxPower(uint8_t dbm)
 // Adjust sensitivity level (Command 0xF0)
 // mixerGain: 0-6 (higher = more sensitive, 6 = maximum)
 // ifGain: 0-7 (higher = more sensitive, 7 = maximum)
-// threshold: 0x0000-0xFFFF (lower = more sensitive, typical range 0x0080-0x0200)
 bool R200::setSensitivity(uint8_t mixerGain, uint8_t ifGain, uint16_t threshold)
 {
     // Validate inputs
@@ -53,14 +52,19 @@ bool R200::setSensitivity(uint8_t mixerGain, uint8_t ifGain, uint16_t threshold)
     params[0] = mixerGain;
     params[1] = ifGain;
     params[2] = (threshold >> 8) & 0xFF; // MSB
-    params[3] = threshold & 0xFF;         // LSB
+    params[3] = threshold & 0xFF;        // LSB
+
+    // Flush any existing data in buffer before sending command
+    while (_serial->available())
+        _serial->read();
 
     _sendCommand(0xF0, params, 4);
-    delay(100);
+    delay(150); // Delay to ensure response is ready
 
     // Read response to verify
     Frame response = _readResponse();
-    if (response.cmd == 0xF0 && response.payload.size() > 0)
+    // Check if we got a valid response frame (frameType 0x01 = response, cmd 0xF0)
+    if (response.frameType == 0x01 && response.cmd == 0xF0 && response.payload.size() > 0)
     {
         if (response.payload[0] == 0x00)
         {
@@ -69,11 +73,19 @@ bool R200::setSensitivity(uint8_t mixerGain, uint8_t ifGain, uint16_t threshold)
             Serial.print(" | Amplifier Gain: ");
             Serial.print(ifGain);
             Serial.print(" | Threshold: 0x");
-            if (threshold < 0x1000) Serial.print("0");
-            if (threshold < 0x100) Serial.print("0");
-            if (threshold < 0x10) Serial.print("0");
+            if (threshold < 0x1000)
+                Serial.print("0");
+            if (threshold < 0x100)
+                Serial.print("0");
+            if (threshold < 0x10)
+                Serial.print("0");
             Serial.println(threshold, HEX);
             return true;
+        }
+        else
+        {
+            // Response received but indicates failure
+            return false;
         }
     }
     return false;
