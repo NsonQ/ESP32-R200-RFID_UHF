@@ -100,26 +100,16 @@ const char* password = "YOUR_WIFI_PASSWORD";
 const char* mqtt_server = "YOUR_MQTT_BROKER_IP";
 const int mqtt_port = 1883;
 
-// Fridge Configuration
-const char* FRIDGE_ID = "01";  // Change for each fridge (01, 02, 03, etc.)
-const char* COMMAND = "Fridge01/Command";  // Update with FRIDGE_ID
-const char* CART = "Fridge01/Cart";       // Update with FRIDGE_ID
-const char* INVENTORY = "Fridge01/Inventory";  // Update with FRIDGE_ID
-
-// Hardware Pins
-const int LOCK_PIN = 2;  // GPIO pin for lock control
-// R200 pins configured in R200.cpp
-
 #endif
 ```
 
-### 4. Update Fridge ID
+### 4. Update Fridge ID and MQTT Topics
 
-For each fridge, update the following in `include/env.h`:
-- `FRIDGE_ID` - Unique identifier (01, 02, 03, etc.)
-- `COMMAND` - MQTT topic: `Fridge{FRIDGE_ID}/Command`
-- `CART` - MQTT topic: `Fridge{FRIDGE_ID}/Cart`
-- `INVENTORY` - MQTT topic: `Fridge{FRIDGE_ID}/Inventory`
+For each fridge, update the following in `src/main.cpp`:
+- MQTT Topics (lines 17-19):
+  - `INVENTORY` - MQTT topic: `Fridge01/Inventory` (change "01" to your fridge ID)
+  - `COMMAND` - MQTT topic: `Fridge01/Command` (change "01" to your fridge ID)
+  - `CART` - MQTT topic: `Fridge01/Cart` (change "01" to your fridge ID)
 
 ### 5. Build and Upload
 

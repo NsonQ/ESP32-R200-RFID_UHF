@@ -231,7 +231,6 @@ void R200::_sendCommand(uint8_t cmd, const uint8_t *params, size_t len)
 }
 
 // Read response frame from R200
-// Return EPC string if tag found, else return empty string
 Frame R200::_readResponse()
 {
 
