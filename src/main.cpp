@@ -40,7 +40,10 @@ void setup()
   reader.begin();
 
   // Set sensitivity and transmission power
-  reader.setTxPower(24);
+  // Higher TX power (24 dBm = near maximum) for better range
+  reader.setTxPower(26);
+  // Maximum sensitivity: mixerGain=6 (max), ifGain=7 (max), threshold=0x0080 (lower = more sensitive)
+  // Lower threshold allows detection of weaker signals from tags
   reader.setSensitivity(3, 6, 0x0100);
 
   // Initialize GPIO pins
@@ -102,7 +105,7 @@ void loop()
     diff = reader.getJsonDifference(previousInventory, currentInventory);
     Serial.println("Cart: " + diff);
     client.publish(CART, diff.c_str());
-    delay(1000);
+    // delay(1000);
   }
   // Publish the updated inventory the door is closed
   else if (currentLockState == LOW && lastLockState == HIGH)

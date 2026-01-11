@@ -136,7 +136,7 @@ String R200::scan()
     JsonArray array = doc.to<JsonArray>();
 
     //
-    while (millis() - start < 500)
+    while (millis() - start < 1000)
     {
         // Read a notification frame
         Frame response = _readResponse();
